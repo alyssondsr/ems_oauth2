@@ -19,7 +19,7 @@ execute(Request) ->
 
 	io:format("\nresponse_type = ~p\nclient_id = ~p \nredirect_uri = ~p \nstate = ~p \nSecret = ~p\n_____________\n", [ResponseType, ClientId, RedirectUri, State, Secret]),
 	Resposta = ems_oauth2_backend:authenticate_client(ClientId,Secret,""),
-	Unio:format("\nAutenticação = ~p\n_____________\n", [Resposta]),
+	io:format("\nAutenticação = ~p\n_____________\n", [Resposta]),
 
 	%io:format("Requisição ~p",[Request]),
 	<<"{\"ok\": \"ok\"}">>.
