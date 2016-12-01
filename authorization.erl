@@ -11,21 +11,37 @@
 
 execute(Request) -> 
 	%ResponseType = ems_request:get_querystring(<<"response_type">>, "", Request),
-	%RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, "", Request),
+	GrantType = ems_request:get_querystring(<<"grant_type">>, "", Request),
+	{ok, Reply} =
+        case GrantType of
+            "password" -> 
+				process_password_grant(Request);
+            "client_credentials" ->
+				process_client_credentials_grant(Request);
+            "token" ->
+				process_client_credentials_grant(Request);
+             _ ->
+				process_password_grant(Request)
+			end,  
+		io:format("..............\n Reply: ~p \n...............\n", [Reply] ),
+     
+	Reply.
+	
+process_client_credentials_grant(Request) ->
 	ClientId = ems_request:get_querystring(<<"client_id">>, "", Request),
 	Secret = ems_request:get_querystring(<<"secret">>, "", Request),
-	%State = ems_request:get_querystring(<<"state">>, "", Request),
 	Scope = ems_request:get_querystring(<<"scope">>, "", Request),	
-	
-	process_client_credentials_grant(ClientId, Secret, Scope).
-	
-process_client_credentials_grant(ClientId, Secret, Scope) ->
     Auth = oauth2:authorize_client_credentials(ClientId, Secret, Scope, []),
-    io:format("..............\n Auth: ~p \n...............", [Auth] ),
+    io:format("..............\n Auth: ~p \n...............\n", [Auth] ),
 	issue_token(Auth).
     
-process_password_grant(ClientId, Secret, Scope) ->
-	Auth = oauth2:authorize_password(ClientId, Secret, Scope, []),
+process_password_grant(Request) -> 
+	Username = ems_request:get_querystring(<<"username">>, "", Request),
+	Password = ems_request:get_querystring(<<"password">>, "", Request),
+	Scope = ems_request:get_querystring(<<"scope">>, "", Request),	
+    io:format("..............\n User: ~p \n...............\n", [Username] ),
+    Auth = oauth2:authorize_password(Username, Password, Scope, []),
+    io:format("..............\n Auth: ~p \n...............\n", [Auth] ),
 	issue_token(Auth).
 	
 issue_token({ok, Auth}) ->
