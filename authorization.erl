@@ -49,13 +49,13 @@ process_implicit_grant(Request) ->
     Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
-    {ok,Html} = case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
-        ok ->
-            
-        {error, Reason} ->
-    end,
-    io:format("Error: ~p",[Html]),
-Html.
+    %{ok,Html} = case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
+    %    ok ->
+    %    
+    %    {error, Reason} ->
+    %end,
+    io:format("Error: ~p",[RedirectUri]),
+RedirectUri.
 
 process_implicit_grant_stage2(Request) ->
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
@@ -64,13 +64,13 @@ process_implicit_grant_stage2(Request) ->
     Password    = ems_request:get_querystring(<<"password">>, [],Request),
     State       = ems_request:get_querystring(<<"state">>, [],Request),
     Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
-    case oauth2:verify_redirection_uri(ClientId, RedirectUri) of
-        ok ->
-            case oauth2:authorize_password(Username, Password, Scope) of
-                
-            end;
+    %case oauth2:verify_redirection_uri(ClientId, RedirectUri) of
+     %   ok ->
+     %       case oauth2:authorize_password(Username, Password, Scope) of
+     %           
+     %       end;
        
-    end.
+    <<"ok">>.
 
 
 
