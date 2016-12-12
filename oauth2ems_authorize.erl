@@ -49,13 +49,16 @@ process_implicit_grant(Request) ->
     Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
-    %{ok,Html} = case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
-    %    ok ->
-    %    
-    %    {error, Reason} ->
-    %end,
-    io:format("Error: ~p",[RedirectUri]),
-	<<"\{ok,ok\}">>.
+    Auth = case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
+		ok -> 
+			io:format("..............\n OK  \n...............\n" ),
+			<<"\{ok:ok\}">>;
+		{error, Reason} ->
+			io:format("..............\n Reason: ~p \n...............\n", [Reason] ),
+			<<"\{error\}">>
+	end,			
+    io:format("..............\n Auth: ~p \n...............\n", [Auth] ),
+    Auth.
 
 process_implicit_grant_stage2(Request) ->
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
@@ -65,17 +68,17 @@ process_implicit_grant_stage2(Request) ->
     State       = ems_request:get_querystring(<<"state">>, [],Request),
     Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
     %case oauth2:verify_redirection_uri(ClientId, RedirectUri) of
-     %   ok ->
-     %       case oauth2:authorize_password(Username, Password, Scope) of
-     %           
-     %       end;
+     %  ok ->
+     %      case oauth2:authorize_password(Username, Password, Scope) of
+     %          
+     %      end;
        
 	<<"\{ok,ok\}">>.
 
 
 issue_token({ok, Auth}) ->
 	Response = oauth2:issue_token(Auth, []),
-   	%io:format("\n#################\nToken = ~p\n#################\n", [Teste]),
+   	%io:format("\n#################\nToken = ~p\n#################\n", [oauth2_response:to_proplist(Response)]),
 	    oauth2_response:to_proplist(Response);
 issue_token(Error) ->
     Error.
