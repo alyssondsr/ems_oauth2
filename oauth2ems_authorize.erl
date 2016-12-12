@@ -5,7 +5,7 @@
 %% @author Everton de Vargas Agilar <evertonagilar@gmail.com>
 %% @copyright ErlangMS Team
 %%********************************************************************
--module(authorization).
+-module(oauth2ems_authorize).
 
 -export([execute/1]).
 
@@ -19,9 +19,9 @@ execute(Request) ->
             "client_credentials" ->
 				process_client_credentials_grant(Request);
             "token" ->
-				process_implicit_grant_stage2(Request);
+				process_implicit_grant(Request);
              _ ->
-				process_password_grant(Request)
+				<<"\{error: tipo nao suportado\}">>
 			end,  
 		%io:format("..............\n Reply: ~p \n...............\n", [Teste] ),
     %<<"\{ok,ok\}">>. 
@@ -55,7 +55,7 @@ process_implicit_grant(Request) ->
     %    {error, Reason} ->
     %end,
     io:format("Error: ~p",[RedirectUri]),
-RedirectUri.
+	<<"\{ok,ok\}">>.
 
 process_implicit_grant_stage2(Request) ->
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
@@ -70,8 +70,7 @@ process_implicit_grant_stage2(Request) ->
      %           
      %       end;
        
-    <<"ok">>.
-
+	<<"\{ok,ok\}">>.
 
 
 issue_token({ok, Auth}) ->

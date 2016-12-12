@@ -1,4 +1,4 @@
--module(ems_oauth2_backend).
+-module(oauth2ems_backend).
 
 -behavior(oauth2_backend).
 
