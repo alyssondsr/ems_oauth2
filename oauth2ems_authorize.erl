@@ -1,10 +1,3 @@
-%%********************************************************************
-%% @title Módulo helloworld_service
-%% @version 1.0.0
-%% @doc Módulo de serviço para o famoso hello world!!!
-%% @author Everton de Vargas Agilar <evertonagilar@gmail.com>
-%% @copyright ErlangMS Team
-%%********************************************************************
 -module(oauth2ems_authorize).
 
 -export([execute/1]).
@@ -21,7 +14,7 @@ execute(Request) ->
             "token" ->
 				process_implicit_grant(Request);
              _ ->
-				<<"\{error: tipo nao suportado\}">>
+				<<"\{error: invalid_request\}">>
 			end,  
 		%io:format("..............\n Reply: ~p \n...............\n", [Teste] ),
     %<<"\{ok,ok\}">>. 
@@ -32,16 +25,13 @@ process_client_credentials_grant(Request) ->
 	Secret = ems_request:get_querystring(<<"secret">>, "", Request),
 	Scope = ems_request:get_querystring(<<"scope">>, "", Request),	
     Auth = oauth2:authorize_client_credentials(ClientId, Secret, Scope, []),
-    %io:format("..............\n Auth: ~p \n...............\n", [Auth] ),
 	issue_token(Auth).
     
 process_password_grant(Request) -> 
 	Username = ems_request:get_querystring(<<"username">>, "", Request),
 	Password = ems_request:get_querystring(<<"password">>, "", Request),
 	Scope = ems_request:get_querystring(<<"scope">>, "", Request),	
-    %io:format("..............\n User: ~p \n...............\n", [Username] ),
     Auth = oauth2:authorize_password(Username, Password, Scope, []),
-    %io:format("..............\n Auth: ~p \n...............\n", [Auth] ),
 	issue_token(Auth).
 
 process_implicit_grant(Request) ->
@@ -49,13 +39,13 @@ process_implicit_grant(Request) ->
     Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
+    io:format("..............\n redirect_uri: ~p \n...............\n", [redirect_uri] ),
     Auth = case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
-		ok -> 
-			io:format("..............\n OK  \n...............\n" ),
-			<<"\{ok:ok\}">>;
+		{ok,Uri} -> 
+			list_to_binary(Uri);
 		{error, Reason} ->
 			io:format("..............\n Reason: ~p \n...............\n", [Reason] ),
-			<<"\{error\}">>
+			<<"\{error:\}">>
 	end,			
     io:format("..............\n Auth: ~p \n...............\n", [Auth] ),
     Auth.
