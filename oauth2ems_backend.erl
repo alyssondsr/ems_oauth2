@@ -61,7 +61,6 @@ start() ->
                           ets:new(Table, [named_table, public])
                   end,
                   ?TABLES),
-					ems_oauth2_backend:add_client("UnB","unb","http://unb.br"),
 					ems_oauth2_backend:add_client("s6BhdRkqt3","qwer","https://client.example.com/cb"),
 					ems_oauth2_backend:add_user("johndoe","A3ddj3w").
 
@@ -138,9 +137,6 @@ resolve_refresh_token(RefreshToken, _AppContext) ->
     resolve_access_token(RefreshToken, _AppContext).
 
 resolve_access_token(AccessToken, _) ->
-    %% The case trickery is just here to make sure that
-    %% we don't propagate errors that cannot be legally
-    %% returned from this function according to the spec.
     case get(?ACCESS_TOKEN_TABLE, AccessToken) of
         Value = {ok, _} ->
             Value;

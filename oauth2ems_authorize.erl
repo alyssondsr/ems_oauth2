@@ -64,8 +64,7 @@ implicit_grant2(Request) ->
         {error, Reason} ->
 			[{ <<"error">>, Reason}]                         
 	end,			
-    Resposta.
-	%<<"\{ok,ok\}">>.
+    <<"\{ok,ok\}">>.
 
 
 issue_token({ok, Auth}) ->
