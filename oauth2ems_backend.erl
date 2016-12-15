@@ -12,7 +12,6 @@
          ,delete_client/1
         ]).
 
-%%% Behavior API
 -export([authenticate_username_password/3]).
 -export([authenticate_client/3]).
 -export([get_client_identity/2]).
@@ -138,9 +137,6 @@ resolve_refresh_token(RefreshToken, _AppContext) ->
     resolve_access_token(RefreshToken, _AppContext).
 
 resolve_access_token(AccessToken, _) ->
-    %% The case trickery is just here to make sure that
-    %% we don't propagate errors that cannot be legally
-    %% returned from this function according to the spec.
     case get(?ACCESS_TOKEN_TABLE, AccessToken) of
         Value = {ok, _} ->
             Value;
@@ -186,7 +182,7 @@ verify_scope(_, _, _) ->
     {error, invalid_scope}.
 
 %%%===================================================================
-%%% Internal functions
+%%% Funções internas
 %%%===================================================================
 
 get(Table, Key) ->

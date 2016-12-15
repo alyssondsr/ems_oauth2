@@ -13,6 +13,11 @@ execute(Request) ->
 				client_credentials_grant(Request);
             "token" ->
 				implicit_grant(Request);
+			"code" ->
+				implicit_grant2(Request);	
+			"implicit" ->
+			% Apenas para simulação
+				implicit_grant2(Request);				
              _ ->
 				<<"\{error: invalid_request\}">>
 			end,  
@@ -34,8 +39,8 @@ password_grant(Request) ->
 	issue_token(Auth).
 
 implicit_grant(Request) ->
-    State       = ems_request:get_querystring(<<"state">>, [],Request),
-    Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
+    %State       = ems_request:get_querystring(<<"state">>, [],Request),
+    %Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
     Resposta = case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
@@ -51,13 +56,17 @@ implicit_grant2(Request) ->
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
     Username    = ems_request:get_querystring(<<"username">>, [],Request),
     Password    = ems_request:get_querystring(<<"password">>, [],Request),
-    State       = ems_request:get_querystring(<<"state">>, [],Request),
+    %State       = ems_request:get_querystring(<<"state">>, [],Request),
     Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
-    Resposta 	= case oauth2:verify_redirection_uri(ClientId, RedirectUri) of
-        ok ->
-            case oauth2:authorize_password(Username, Password, Scope) of
-                {ok, Response} ->
-                    [{<<"state">>, State} | oauth2_response:to_proplist(Response)];
+    io:format("\n====================\nClientId: ~p\n====================\n", [ClientId]),
+	io:format("\n====================\nAuth: ~p\n====================\n", [oauth2:authorize_password(Username, Password, Scope,[])]),
+
+    Resposta 	= case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, [])  of
+        {ok, _} ->
+            case oauth2:authorize_password(Username, Password, Scope, []) of
+                {ok, Auth} ->
+                   	issue_token({ok, Auth});
+                    %[{<<"state">>, State} | oauth2_response:to_proplist(Response)];
                 {error, Reason} ->
 					[{ <<"error">>, Reason}]
 			end; 
@@ -65,11 +74,9 @@ implicit_grant2(Request) ->
 			[{ <<"error">>, Reason}]                         
 	end,			
     Resposta.
-	%<<"\{ok,ok\}">>.
-
 
 issue_token({ok, Auth}) ->
 	Response = oauth2:issue_token(Auth, []),
-	    oauth2_response:to_proplist(Response);
+	oauth2_response:to_proplist(Response);
 issue_token(Error) ->
     Error.
