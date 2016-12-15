@@ -14,7 +14,7 @@ execute(Request) ->
             "token" ->
 				implicit_grant(Request);
 			"code" ->
-				implicit_grant2(Request);	
+				code_grant(Request);	
 			"implicit" ->
 			% Apenas para simulação
 				implicit_grant2(Request);				
@@ -74,6 +74,42 @@ implicit_grant2(Request) ->
 			[{ <<"error">>, Reason}]                         
 	end,			
     Resposta.
+    
+code_grant(Request) ->
+    ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
+    RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
+    Resposta = case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
+		{ok,Uri} -> 
+			[{ <<"uri">>, Uri}];
+		{error, Reason} ->
+			[{ <<"error">>, Reason}]                         
+	end,			
+    Resposta.
+    
+code_grant2(Request) ->
+    ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
+    RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
+    Username    = ems_request:get_querystring(<<"username">>, [],Request),
+    Password    = ems_request:get_querystring(<<"password">>, [],Request),
+    %State       = ems_request:get_querystring(<<"state">>, [],Request),
+    Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
+    io:format("\n====================\nClientId: ~p\n====================\n", [ClientId]),
+	io:format("\n====================\nAuth: ~p\n====================\n", [oauth2:authorize_password(Username, Password, Scope,[])]),
+
+    Resposta 	= case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, [])  of
+        {ok, _} ->
+            case oauth2:authorize_code_request(ClientId, RedirectUri, Username, Password, Scope, []) of
+                {ok, Auth} ->
+                   	issue_token({ok, Auth});
+                    %[{<<"state">>, State} | oauth2_response:to_proplist(Response)];
+                {error, Reason} ->
+					[{ <<"error">>, Reason}]
+			end; 
+        {error, Reason} ->
+			[{ <<"error">>, Reason}]                         
+	end,			
+    Resposta.
+
 
 issue_token({ok, Auth}) ->
 	Response = oauth2:issue_token(Auth, []),
