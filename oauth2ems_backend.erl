@@ -60,7 +60,6 @@ start() ->
                           ets:new(Table, [named_table, public])
                   end,
                   ?TABLES),
-					ems_oauth2_backend:add_client("UnB","unb","http://unb.br"),
 					ems_oauth2_backend:add_client("s6BhdRkqt3","qwer","https://client.example.com/cb"),
 					ems_oauth2_backend:add_user("johndoe","A3ddj3w").
 
