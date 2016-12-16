@@ -63,8 +63,8 @@ authorization_request2(Request) ->
     Password    = ems_request:get_querystring(<<"password">>, [],Request),
     %State       = ems_request:get_querystring(<<"state">>, [],Request),
     Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
-    io:format("\n====================\nClientId: ~p\n====================\n", [ClientId]),
-	io:format("\n====================\nAuth: ~p\n====================\n", [oauth2:authorize_password(Username, Password, Scope,[])]),
+    %io:format("\n====================\nClientId: ~p\n====================\n", [ClientId]),
+	%io:format("\n====================\nAuth: ~p\n====================\n", [oauth2:authorize_password(Username, Password, Scope,[])]),
 
     Resposta 	= case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, [])  of
         {ok, _} ->
@@ -84,15 +84,11 @@ access_token_request(Request) ->
 	Code = maps:get(<<"code">>, Request#request.querystring_map, []),
 	ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
-    Resposta 	= case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, [])  of
+    ClientSecret = ems_request:get_querystring(<<"secret">>, [],Request),
+    Resposta 	= case oauth2:authorize_code_grant(ClientId, ClientSecret, Code, RedirectUri, []) of
         {ok, Auth} ->
-			case oauth2:verify_access_code(Code, []) of
-				{ok, _} ->
-					io:format("\n====================\nAuth: ~p\n====================\n", [issue_token({ok, Auth})]),
-                   	issue_token({ok, Auth});
-                {error, Reason} ->
-					[{ <<"error">>, Reason}]
-			end; 
+			io:format("\n====================\nAuth: ~p\n====================\n", [issue_token({ok, Auth})]),
+            issue_token({ok, Auth});
 		{error, Reason} ->
 			[{ <<"error">>, Reason}]
 		end,
