@@ -31,11 +31,13 @@
 -export([verify_scope/3]).
 
 -define(ACCESS_TOKEN_TABLE, access_tokens).
+-define(ACCESS_CODE_TABLE, access_codes).
 -define(REFRESH_TOKEN_TABLE, refresh_tokens).
 -define(USER_TABLE, users).
 -define(CLIENT_TABLE, clients).
 
 -define(TABLES, [?ACCESS_TOKEN_TABLE,
+				 ?ACCESS_CODE_TABLE,
                  ?REFRESH_TOKEN_TABLE,
                  ?USER_TABLE,
                  ?CLIENT_TABLE]).
@@ -120,7 +122,7 @@ get_client_identity(ClientId, _) ->
     end.
 
 associate_access_code(AccessCode, Context, _AppContext) ->
-    associate_access_token(AccessCode, Context, _AppContext).
+    put(?ACCESS_CODE_TABLE, AccessCode, Context).
 
 associate_refresh_token(RefreshToken, Context, _) ->
     put(?REFRESH_TOKEN_TABLE, RefreshToken, Context).
@@ -130,7 +132,12 @@ associate_access_token(AccessToken, Context, _) ->
 
 
 resolve_access_code(AccessCode, _AppContext) ->
-    resolve_access_token(AccessCode, _AppContext).
+	case get(?ACCESS_CODE_TABLE, AccessCode) of
+        Value = {ok, _} ->
+            Value;
+        Error = {error, notfound} ->
+            Error
+    end.
 
 resolve_refresh_token(RefreshToken, _AppContext) ->
     resolve_access_token(RefreshToken, _AppContext).
@@ -144,7 +151,8 @@ resolve_access_token(AccessToken, _) ->
     end.
 
 revoke_access_code(AccessCode, _AppContext) ->
-    revoke_access_token(AccessCode, _AppContext).
+    delete(?ACCESS_CODE_TABLE, AccessCode),
+    ok.
 
 revoke_access_token(AccessToken, _) ->
     delete(?ACCESS_TOKEN_TABLE, AccessToken),

@@ -2,6 +2,9 @@
 
 -export([execute/1]).
 
+-include("../include/ems_schema.hrl").
+
+
 execute(Request) -> 
 	ResponseType = ems_request:get_querystring(<<"response_type">>, "", Request),
 	GrantType = ems_request:get_querystring(<<"grant_type">>, "", Request),
@@ -12,12 +15,14 @@ execute(Request) ->
             "client_credentials" ->
 				client_credentials_grant(Request);
             "token" ->
-				implicit_grant(Request);
+				authorization_request(Request);
 			"code" ->
-				code_grant(Request);	
-			"implicit" ->
+				authorization_request(Request);	
+			"authorization_code" ->
+				access_token_request(Request);	
+			"code2" ->
 			% Apenas para simulação
-				implicit_grant2(Request);				
+				authorization_request2(Request);				
              _ ->
 				<<"\{error: invalid_request\}">>
 			end,  
@@ -38,7 +43,7 @@ password_grant(Request) ->
     Auth = oauth2:authorize_password(Username, Password, Scope, []),
 	issue_token(Auth).
 
-implicit_grant(Request) ->
+authorization_request(Request) ->
     %State       = ems_request:get_querystring(<<"state">>, [],Request),
     %Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
@@ -51,7 +56,7 @@ implicit_grant(Request) ->
 	end,			
     Resposta.
 
-implicit_grant2(Request) ->
+authorization_request2(Request) ->
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
     Username    = ems_request:get_querystring(<<"username">>, [],Request),
@@ -65,7 +70,7 @@ implicit_grant2(Request) ->
         {ok, _} ->
             case oauth2:authorize_password(Username, Password, Scope, []) of
                 {ok, Auth} ->
-                   	issue_token({ok, Auth});
+                   	issue_code({ok, Auth});
                     %[{<<"state">>, State} | oauth2_response:to_proplist(Response)];
                 {error, Reason} ->
 					[{ <<"error">>, Reason}]
@@ -74,45 +79,35 @@ implicit_grant2(Request) ->
 			[{ <<"error">>, Reason}]                         
 	end,			
     Resposta.
-    
-code_grant(Request) ->
-    ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
-    RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
-    Resposta = case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
-		{ok,Uri} -> 
-			[{ <<"uri">>, Uri}];
-		{error, Reason} ->
-			[{ <<"error">>, Reason}]                         
-	end,			
-    Resposta.
-    
-code_grant2(Request) ->
-    ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
-    RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
-    Username    = ems_request:get_querystring(<<"username">>, [],Request),
-    Password    = ems_request:get_querystring(<<"password">>, [],Request),
-    %State       = ems_request:get_querystring(<<"state">>, [],Request),
-    Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
-    io:format("\n====================\nClientId: ~p\n====================\n", [ClientId]),
-	io:format("\n====================\nAuth: ~p\n====================\n", [oauth2:authorize_password(Username, Password, Scope,[])]),
 
+access_token_request(Request) ->
+	Code = maps:get(<<"code">>, Request#request.querystring_map, []),
+	ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
+    RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
     Resposta 	= case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, [])  of
-        {ok, _} ->
-            case oauth2:authorize_code_request(ClientId, RedirectUri, Username, Password, Scope, []) of
-                {ok, Auth} ->
+        {ok, Auth} ->
+			case oauth2:verify_access_code(Code, []) of
+				{ok, _} ->
+					io:format("\n====================\nAuth: ~p\n====================\n", [issue_token({ok, Auth})]),
                    	issue_token({ok, Auth});
-                    %[{<<"state">>, State} | oauth2_response:to_proplist(Response)];
                 {error, Reason} ->
 					[{ <<"error">>, Reason}]
 			end; 
-        {error, Reason} ->
-			[{ <<"error">>, Reason}]                         
-	end,			
-    Resposta.
-
+		{error, Reason} ->
+			[{ <<"error">>, Reason}]
+		end,
+	Resposta. 
+		
 
 issue_token({ok, Auth}) ->
 	Response = oauth2:issue_token(Auth, []),
 	oauth2_response:to_proplist(Response);
 issue_token(Error) ->
     Error.
+    
+issue_code({ok, Auth}) ->
+	Response = oauth2:issue_code(Auth, []),
+	oauth2_response:to_proplist(Response);
+issue_code(Error) ->
+    Error.
+
