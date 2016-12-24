@@ -14,7 +14,7 @@ execute(Request) ->
 				password_grant(Request);
             "client_credentials" ->
 				client_credentials_grant(Request);
-            "token" ->
+			"token" ->
 				authorization_request(Request);
 			"code" ->
 				authorization_request(Request);	
@@ -28,7 +28,10 @@ execute(Request) ->
 			end,  
 	Resposta.
 	
-% Funções Internas %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%===================================================================
+%%% Funções internas
+%%%===================================================================
+
 client_credentials_grant(Request) ->
 	ClientId = ems_request:get_querystring(<<"client_id">>, "", Request),
 	Secret = ems_request:get_querystring(<<"secret">>, "", Request),
@@ -51,10 +54,10 @@ authorization_request(Request) ->
     Resposta = case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
 		{ok,Uri} -> 
 			%[{ <<"uri">>, Uri}];
-		    Redirect = [{<<"location">>, erlang:list_to_binary(Uri)}],
+		    Redirect = lists:concat(["location:\ ", Uri]),
 		    io:format("\n====================\nRedirect: ~p\n====================\n", [Redirect]),
 			%io:format("\n========+============\nReply: ~p\n==========+==========\n", [cowboy_req:reply(302, Redirect, <<>>, Request)]),
-			Redirect;
+			ems_http_util:encode_response(<<"302">>, erlang:list_to_binary(Redirect),<<"application/json">>, Redirect );
 		{error, Reason} ->
 			[{ <<"error">>, Reason}]                         
 	end,			
@@ -65,7 +68,7 @@ authorization_request2(Request) ->
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
     Username    = ems_request:get_querystring(<<"username">>, [],Request),
     Password    = ems_request:get_querystring(<<"password">>, [],Request),
-    State       = ems_request:get_querystring(<<"state">>, [],Request),
+    %State       = ems_request:get_querystring(<<"state">>, [],Request),
     Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
 
     Resposta 	= case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, [])  of
