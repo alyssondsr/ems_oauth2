@@ -54,10 +54,10 @@ authorization_request(Request) ->
     Resposta = case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
 		{ok,Uri} -> 
 			%[{ <<"uri">>, Uri}];
-		    Redirect = lists:concat(["location:\ ", Uri]),
+		    Redirect = lists:concat(["Location:\ ", Uri]),
 		    io:format("\n====================\nRedirect: ~p\n====================\n", [Redirect]),
 			%io:format("\n========+============\nReply: ~p\n==========+==========\n", [cowboy_req:reply(302, Redirect, <<>>, Request)]),
-			ems_http_util:encode_response(<<"302">>, erlang:list_to_binary(Redirect),<<"application/json">>, Redirect );
+			ems_http_util:encode_response(<<"302">>, erlang:list_to_binary(Redirect) );
 		{error, Reason} ->
 			[{ <<"error">>, Reason}]                         
 	end,			
