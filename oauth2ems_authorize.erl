@@ -51,13 +51,10 @@ authorization_request(Request) ->
     %Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
-    Resposta = case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
-		{ok,Uri} -> 
-			%[{ <<"uri">>, Uri}];
-		    Redirect = lists:concat(["Location:\ ", Uri]),
-		    io:format("\n====================\nRedirect: ~p\n====================\n", [Redirect]),
-			%io:format("\n========+============\nReply: ~p\n==========+==========\n", [cowboy_req:reply(302, Redirect, <<>>, Request)]),
-			ems_http_util:encode_response(<<"302">>, erlang:list_to_binary(Redirect) );
+    Resposta = case oauth2ems_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
+		{ok,_} -> 
+		    Redirect = lists:concat(["Location:\ http://127.0.0.1:2301/authorize?response_type=code2&client_id=", ClientId, "&redirect_uri=",RedirectUri]),
+			ems_http_util:encode_response(<<"302">>, erlang:list_to_binary(Redirect));
 		{error, Reason} ->
 			[{ <<"error">>, Reason}]                         
 	end,			
@@ -71,7 +68,7 @@ authorization_request2(Request) ->
     %State       = ems_request:get_querystring(<<"state">>, [],Request),
     Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
 
-    Resposta 	= case ems_oauth2_backend:verify_redirection_uri(ClientId, RedirectUri, [])  of
+    Resposta 	= case oauth2ems_backend:verify_redirection_uri(ClientId, RedirectUri, [])  of
         {ok, _} ->
             case oauth2:authorize_password(Username, Password, Scope, []) of
                 {ok, Auth} ->
@@ -106,6 +103,7 @@ issue_token(Error) ->
     
 issue_code({ok, Auth}) ->
 	Response = oauth2:issue_code(Auth, []),
+	%io:format("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\nAuth: ~p\n-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+",[Response]),
 	oauth2_response:to_proplist(Response);
 issue_code(Error) ->
     Error.
