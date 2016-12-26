@@ -62,8 +62,8 @@ start() ->
                           ets:new(Table, [named_table, public])
                   end,
                   ?TABLES),
-					ems_oauth2_backend:add_client("s6BhdRkqt3","qwer","https://client.example.com/cb"),
-					ems_oauth2_backend:add_user("johndoe","A3ddj3w").
+					add_client("s6BhdRkqt3","qwer","https://client.example.com/cb"),
+					add_user("johndoe","A3ddj3w").
 
 stop() ->
     lists:foreach(fun ets:delete/1, ?TABLES).
