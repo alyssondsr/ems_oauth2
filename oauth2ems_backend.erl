@@ -13,6 +13,7 @@
         ]).
 
 -export([authenticate_username_password/3]).
+-export([authenticate_client/2]).
 -export([authenticate_client/3]).
 -export([get_client_identity/2]).
 -export([associate_access_code/3]).
@@ -58,12 +59,13 @@
 %%%===================================================================
 
 start() ->
+    application:set_env(oauth2, backend, oauth2ems_backend),
     lists:foreach(fun(Table) ->
                           ets:new(Table, [named_table, public])
                   end,
                   ?TABLES),
-					add_client("s6BhdRkqt3","qwer","https://client.example.com/cb"),
-					add_user("johndoe","A3ddj3w").
+	add_client("s6BhdRkqt3","qwer", "http://localhost:2301/portal/index.html"),
+	add_user("johndoe","A3ddj3w").
 
 stop() ->
     lists:foreach(fun ets:delete/1, ?TABLES).
@@ -73,6 +75,8 @@ add_user(Username, Password) ->
 
 delete_user(Username) ->
     delete(?USER_TABLE, Username).
+
+
 
 add_client(Id, Secret, RedirectUri) ->
     put(?CLIENT_TABLE, Id, #client{client_id = Id,
@@ -104,21 +108,22 @@ authenticate_username_password(Username, Password, _) ->
     end.
 
 authenticate_client(ClientId, ClientSecret, _) ->
+	authenticate_client(ClientId, ClientSecret).
+
+authenticate_client(ClientId, ClientSecret) ->
     case get(?CLIENT_TABLE, ClientId) of
-        {ok, #client{client_secret = ClientSecret}} ->
-            {ok, {<<"client">>, ClientId}};
-        {ok, #client{client_secret = _WrongSecret}} ->
-            {error, badsecret};
-        _ ->
-            {error, notfound}
+        {ok, Client = #client{client_secret = CliSecret}} -> 
+			case ClientSecret =:= CliSecret of
+				true -> {ok, Client};
+				_ -> {error, badsecret}
+			end;
+        _ -> {error, notfound}
     end.
 
 get_client_identity(ClientId, _) ->
     case get(?CLIENT_TABLE, ClientId) of
-        {ok, _} ->
-            {ok, {<<"client">>, ClientId}};
-        _ ->
-            {error, notfound}
+        {ok, Client} -> {ok, Client};
+        _ -> {error, notfound}
     end.
 
 associate_access_code(AccessCode, Context, _AppContext) ->
@@ -169,13 +174,19 @@ get_redirection_uri(ClientId, _) ->
             Error
     end.
 
-verify_redirection_uri(ClientId, ClientUri, _) ->
+verify_redirection_uri(ClientId, ClientUri, _) when is_list(ClientId) ->
     case get(?CLIENT_TABLE, ClientId) of
         {ok, #client{redirect_uri = RedirUri}} when ClientUri =:= RedirUri ->
-            {ok, RedirUri};
+            ok;
         _Error ->
             {error, mismatch}
+    end;
+verify_redirection_uri(#client{redirect_uri = RedirUri}, ClientUri, _) ->
+    case ClientUri =:= RedirUri of
+		true -> ok;
+		_Error -> {error, mismatch}
     end.
+    
 
 verify_client_scope(_ClientId, Scope, _) ->
     {ok, Scope}.

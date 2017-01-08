@@ -5,11 +5,12 @@
 -include("../include/ems_schema.hrl").
 
 
-execute(Request) -> 
-	ResponseType = ems_request:get_querystring(<<"response_type">>, "", Request),
-	GrantType = ems_request:get_querystring(<<"grant_type">>, "", Request),
-	Type = erlang:max(ResponseType,GrantType),
-        Resposta = case Type of
+execute(Request = #request{type = Type}) -> 
+	TypeAuth = case Type of
+		"GET" -> ems_request:get_querystring(<<"response_type">>, "", Request);
+		"POST" -> ems_request:get_querystring(<<"grant_type">>, "", Request)
+	end,
+    Result = case TypeAuth of
             "password" -> 
 				password_grant(Request);
             "client_credentials" ->
@@ -21,12 +22,33 @@ execute(Request) ->
 			"authorization_code" ->
 				access_token_request(Request);	
 			"code2" ->
-			% Apenas para simulação
+				% Apenas para simulação
 				authorization_request2(Request);				
-             _ ->
-				<<"\{error: invalid_request\}">>
-			end,  
-	Resposta.
+             _ -> {error, invalid_request}
+	end,  
+	case Result of
+		{ok, ResponseData} ->
+			ResponseData2 = ems_schema:prop_list_to_json(ResponseData),
+			{ok, Request#request{code = 200, 
+								 response_data = ResponseData2}
+			};
+		{redirect, ClientId, RedirectUri} ->
+			%LocationPath = lists:concat(["http://127.0.0.1:2301/authorize?response_type=code2&client_id=", ClientId, "&redirect_uri=", RedirectUri]),
+			LocationPath = lists:concat(["http://127.0.0.1:2301/portal/index.html?response_type=code2&client_id=", ClientId, "&redirect_uri=", RedirectUri]),
+			{ok, Request#request{code = 302, 
+									 response_data = <<"{}">>,
+									 response_header = #{
+															<<"location">> => LocationPath
+														}
+									}
+			};
+		Error ->
+			ResponseData = ems_util:json_encode(Error),
+			{ok, Request#request{code = 400, 
+								 response_data = ResponseData}
+			}
+	end.
+
 	
 %%%===================================================================
 %%% Funções internas
@@ -52,11 +74,8 @@ authorization_request(Request) ->
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
     Resposta = case oauth2ems_backend:verify_redirection_uri(ClientId, RedirectUri, []) of
-		{ok,_} -> 
-		    Redirect = lists:concat(["Location:\ http://127.0.0.1:2301/authorize?response_type=code2&client_id=", ClientId, "&redirect_uri=",RedirectUri]),
-			ems_http_util:encode_response(<<"302">>, erlang:list_to_binary(Redirect));
-		{error, Reason} ->
-			[{ <<"error">>, Reason}]                         
+		ok -> {redirect, ClientId, RedirectUri};
+		Error -> Error
 	end,			
     Resposta.
 
@@ -67,44 +86,37 @@ authorization_request2(Request) ->
     Password    = ems_request:get_querystring(<<"password">>, [],Request),
     %State       = ems_request:get_querystring(<<"state">>, [],Request),
     Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
-
     Resposta 	= case oauth2ems_backend:verify_redirection_uri(ClientId, RedirectUri, [])  of
-        {ok, _} ->
+        ok ->
             case oauth2:authorize_password(Username, Password, Scope, []) of
-                {ok, Auth} ->
-                   	issue_code({ok, Auth});
-                {error, Reason} ->
-					[{ <<"error">>, Reason}]
+                {ok, Auth} -> issue_code({ok, Auth});
+                Error -> Error
 			end; 
-        {error, Reason} ->
-			[{ <<"error">>, Reason}]                         
+        Error2 -> Error2
 	end,			
     Resposta.
 
 access_token_request(Request) ->
-	Code = maps:get(<<"code">>, Request#request.querystring_map, []),
+	Code = list_to_binary(ems_request:get_querystring(<<"code">>, [],Request)),
 	ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
     ClientSecret = ems_request:get_querystring(<<"secret">>, [],Request),
-    Resposta 	= case oauth2:authorize_code_grant(ClientId, ClientSecret, Code, RedirectUri, []) of
-        {ok, Auth} ->
-            issue_token({ok, Auth});
-		{error, Reason} ->
-			[{ <<"error">>, Reason}]
-		end,
-	Resposta. 
+    Result = case oauth2:authorize_code_grant(ClientId, ClientSecret, Code, RedirectUri, []) of
+        {ok, Auth} -> issue_token({ok, Auth});
+		Error -> Error
+	end,
+	Result. 
 		
 
 issue_token({ok, Auth}) ->
 	Response = oauth2:issue_token(Auth, []),
-	oauth2_response:to_proplist(Response);
+	{ok, oauth2_response:to_proplist(Response)};
 issue_token(Error) ->
     Error.
     
 issue_code({ok, Auth}) ->
 	Response = oauth2:issue_code(Auth, []),
-	%io:format("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\nAuth: ~p\n-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+",[Response]),
-	oauth2_response:to_proplist(Response);
+	{ok, oauth2_response:to_proplist(Response)};
 issue_code(Error) ->
     Error.
 
