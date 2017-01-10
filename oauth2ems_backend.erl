@@ -132,10 +132,9 @@ associate_access_token(AccessToken, Context, _) ->
     {put(?ACCESS_TOKEN_TABLE, AccessToken, Context), Context}.
 
 
-resolve_access_code(AccessCode, AppContext) ->
+resolve_access_code(AccessCode, _) ->
 	case get(?ACCESS_CODE_TABLE, AccessCode) of
-        {ok,Value} -> 
-				{ok,{"CTX",Value}};
+        {ok,Value} -> 	{ok,{[],Value}};
         Error = {error, notfound} -> Error
     end.
 
@@ -144,10 +143,8 @@ resolve_refresh_token(RefreshToken, _AppContext) ->
 
 resolve_access_token(AccessToken, _) ->
     case get(?ACCESS_TOKEN_TABLE, AccessToken) of
-        Value = {ok, _} ->
-            Value;
-        Error = {error, notfound} ->
-            Error
+       {ok,Value} -> {ok,{[],Value}};
+        Error = {error, notfound} ->  Error
     end.
 
 revoke_access_code(AccessCode, _AppContext) ->

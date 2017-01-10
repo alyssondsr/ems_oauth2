@@ -112,7 +112,7 @@ access_token_request(Request) ->
 
 issue_token({ok, {_, Auth}}) ->
 	{ok, {_, Response}} = oauth2:issue_token(Auth, []),
-	{ok, list_to_tuple(oauth2_response:to_proplist(Response))};
+	oauth2_response:to_proplist(Response);
 issue_token(Error) ->
     Error.
     

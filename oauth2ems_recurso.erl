@@ -7,4 +7,6 @@
 
 execute(Request) -> 
 	Token = maps:get(<<"token">>, Request#request.querystring_map, []),
-	oauth2:verify_access_token(Token, []).
+	Auth = oauth2:verify_access_token(Token, []),
+	Response = oauth2_response:to_proplist(Auth),
+	{ok, Request#request{code = 200,  response_data = Response} }.
