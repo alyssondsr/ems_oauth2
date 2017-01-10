@@ -94,15 +94,11 @@ delete_client(Id) ->
 %%%===================================================================
 
 authenticate_user({Username, Password}, []) ->
-	io:format("\n User, Pass: ~p, ~p", [Username, Password]),
     case get(?USER_TABLE, Username) of
         {ok, #user{password = UserPw}} ->
             case Password of
-                UserPw ->
-					io:format("\n OK: User, Pass: ~p, ~p", [Username, UserPw]),
-                    {ok, {[],#user{username = Username}}};
-                _ ->
-                    {error, badpass}
+                UserPw ->    {ok, {[],{<<"user">>, Username}}};
+                _ -> {error, badpass}
             end;
         Error = {error, notfound} ->  Error
     end.
@@ -121,26 +117,27 @@ authenticate_client({ClientId, ClientSecret},_) ->
 
 get_client_identity(ClientId, _) ->
     case get(?CLIENT_TABLE, ClientId) of
-        {ok, Client} -> {ok, Client};
+        {ok, Client} -> {ok, {[],Client}};
         _ -> {error, notfound}
     end.
 
 associate_access_code(AccessCode, Context, _AppContext) ->
-    put(?ACCESS_CODE_TABLE, AccessCode, Context).
+    {put(?ACCESS_CODE_TABLE, AccessCode, Context), Context}.
 
 associate_refresh_token(RefreshToken, Context, _) ->
-    put(?REFRESH_TOKEN_TABLE, RefreshToken, Context).
+    {put(?REFRESH_TOKEN_TABLE, RefreshToken, Context), Context}.
 
 associate_access_token(AccessToken, Context, _) ->
-    put(?ACCESS_TOKEN_TABLE, AccessToken, Context).
+    {put(?ACCESS_TOKEN_TABLE, AccessToken, Context), Context}.
 
 
-resolve_access_code(AccessCode, _AppContext) ->
+resolve_access_code(AccessCode, AppContext) ->
+   	%io:format("\nAccessCode, AppContext: ~p, ~p\n", [AccessCode, get(?ACCESS_CODE_TABLE, AccessCode)]),
 	case get(?ACCESS_CODE_TABLE, AccessCode) of
-        Value = {ok, _} ->
-            Value;
-        Error = {error, notfound} ->
-            Error
+        {ok,Value} -> 
+				%io:format("\Value Gerado: ~p\n", [Value]),
+				{ok,{"CTX",Value}};
+        Error = {error, notfound} -> Error
     end.
 
 resolve_refresh_token(RefreshToken, _AppContext) ->
@@ -156,14 +153,14 @@ resolve_access_token(AccessToken, _) ->
 
 revoke_access_code(AccessCode, _AppContext) ->
     delete(?ACCESS_CODE_TABLE, AccessCode),
-    ok.
+    {ok, []}.
 
 revoke_access_token(AccessToken, _) ->
     delete(?ACCESS_TOKEN_TABLE, AccessToken),
-    ok.
+    {ok, []}.
 
 revoke_refresh_token(_RefreshToken, _) ->
-    ok.
+    {ok, []}.
 
 get_redirection_uri(ClientId, _) ->
     case get(?CLIENT_TABLE, ClientId) of
@@ -182,7 +179,7 @@ verify_redirection_uri(ClientId, ClientUri, _) when is_list(ClientId) ->
     end;
 verify_redirection_uri(#client{redirect_uri = RedirUri}, ClientUri, _) ->
     case ClientUri =:= RedirUri of
-		true -> ok;
+		true -> {ok,[]};
 		_Error -> {error, mismatch}
     end.
     
@@ -190,7 +187,7 @@ verify_redirection_uri(#client{redirect_uri = RedirUri}, ClientUri, _) ->
 verify_client_scope(_ClientId, Scope, _) ->
     {ok, {[],Scope}}.
 
-verify_resowner_scope(_ResOwner, Scope, Ctx1) ->
+verify_resowner_scope(_ResOwner, Scope, _) ->
     {ok, {[],Scope}}.
 
 verify_scope(Scope, Scope, _) ->
