@@ -28,13 +28,13 @@ execute(Request = #request{type = Type}) ->
 	end,  
 	case Result of
 		{ok, ResponseData} ->
-			ResponseData2 = ems_schema:prop_list_to_json(ResponseData),
+			ResponseData2 = ems_util:json_encode(ResponseData),
 			{ok, Request#request{code = 200, 
 								 response_data = ResponseData2}
 			};
 		{redirect, ClientId, RedirectUri} ->
 			%LocationPath = lists:concat(["http://127.0.0.1:2301/authorize?response_type=code2&client_id=", ClientId, "&redirect_uri=", RedirectUri]),
-			LocationPath = lists:concat(["http://127.0.0.1:2301/portal/index.html?response_type=code2&client_id=", ClientId, "&redirect_uri=", RedirectUri]),
+			LocationPath = lists:concat(["http://192.168.56.102:2301/portal/index.html?response_type=code2&client_id=", ClientId, "&redirect_uri=", RedirectUri]),
 			{ok, Request#request{code = 302, 
 									 response_data = <<"{}">>,
 									 response_header = #{
@@ -59,6 +59,7 @@ client_credentials_grant(Request) ->
 	Secret = ems_request:get_querystring(<<"secret">>, "", Request),
 	Scope = ems_request:get_querystring(<<"scope">>, "", Request),	
     Auth = oauth2:authorize_client_credentials(ClientId, Secret, Scope, []),
+    io:format("\nAuth: ~p\n", [Auth]),
 	issue_token(Auth).
     
 password_grant(Request) -> 
@@ -66,6 +67,7 @@ password_grant(Request) ->
 	Password = ems_request:get_querystring(<<"password">>, "", Request),
 	Scope = ems_request:get_querystring(<<"scope">>, "", Request),	
     Auth = oauth2:authorize_password(Username, Password, Scope, []),
+    io:format("\nAuth: ~p\n", [Auth]),
 	issue_token(Auth).
 
 authorization_request(Request) ->
@@ -110,13 +112,16 @@ access_token_request(Request) ->
 
 issue_token({ok, Auth}) ->
 	Response = oauth2:issue_token(Auth, []),
-	{ok, oauth2_response:to_proplist(Response)};
+	    io:format("\nResponse: ~p \n", [list_to_tuple(oauth2_response:to_proplist(Response))]),
+	    
+	{ok, list_to_tuple(oauth2_response:to_proplist(Response))};
 issue_token(Error) ->
     Error.
     
 issue_code({ok, Auth}) ->
 	Response = oauth2:issue_code(Auth, []),
-	{ok, oauth2_response:to_proplist(Response)};
+	%io:format("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\nAuth: ~p\n-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+",[Response]),
+	oauth2_response:to_proplist(Response);
 issue_code(Error) ->
     Error.
 
