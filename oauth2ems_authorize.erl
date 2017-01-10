@@ -24,7 +24,7 @@ execute(Request = #request{type = Type}) ->
 				access_token_request(Request);	
 			"code2" ->
 				% Apenas para simulação
-				authorization_request2(Request);				
+				code_request(Request);				
              _ -> {error, invalid_request}
 	end,  
 	case Result of
@@ -55,20 +55,27 @@ execute(Request = #request{type = Type}) ->
 %%% Funções internas
 %%%===================================================================
 
+
+%% Cliente Credencial Grant- seção 4.4.1 do RFC 6749. 
+%% URL de teste: POST http://127.0.0.1:2301/authorize?grant_type=client_credentials&client_id=s6BhdRkqt3&secret=qwer
 client_credentials_grant(Request) ->
 	ClientId = ems_request:get_querystring(<<"client_id">>, "", Request),
 	Secret = ems_request:get_querystring(<<"secret">>, "", Request),
 	Scope = ems_request:get_querystring(<<"scope">>, "", Request),	
     Authorization = oauth2:authorize_client_credentials({ClientId, Secret}, Scope, []),
 	issue_token(Authorization).
-    
+
+%% Resource Owner Password Credentials Grant - seção 4.3.1 do RFC 6749.
+%% URL de teste: POST http://127.0.0.1:2301/authorize?grant_type=password&username=johndoe&password=A3ddj3w
 password_grant(Request) -> 
 	Username = ems_request:get_querystring(<<"username">>, "", Request),
 	Password = ems_request:get_querystring(<<"password">>, "", Request),
 	Scope = ems_request:get_querystring(<<"scope">>, "", Request),	
     Authorization = oauth2:authorize_password({Username,Password}, Scope, []),
 	issue_token(Authorization).
-
+	
+%% Verifica a URI do Cliente e redireciona para a página de autorização - Implicit Grant e Authorization Code Grant
+%% URL de teste: GET http://127.0.0.1:2301/authorize?response_type=code&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html
 authorization_request(Request) ->
     %State       = ems_request:get_querystring(<<"state">>, [],Request),
     %Scope       = ems_request:get_querystring(<<"scope">>, [],Request),
@@ -80,7 +87,9 @@ authorization_request(Request) ->
 	end,
     Resposta.
 
-authorization_request2(Request) ->
+%% Requisita o código de autorização - seções 4.1.1 e 4.1.2 do RFC 6749.
+%% URL de teste: GET http://127.0.0.1:2301/authorize?response_type=code2&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w
+code_request(Request) ->
     ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),
     RedirectUri = ems_request:get_querystring(<<"redirect_uri">>, [],Request),
     Username    = ems_request:get_querystring(<<"username">>, [],Request),
@@ -90,7 +99,8 @@ authorization_request2(Request) ->
     Authorization = oauth2:authorize_code_request({Username,Password}, ClientId, RedirectUri, Scope, []),
    	issue_code(Authorization).
 
-
+%% Requisita o token de acesso com o código de autorização - seções  4.1.3. e  4.1.4 do RFC 6749.
+%% URL de teste: GET http://127.0.0.1:2301/authorize?grant_type=authorization_code&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w&secret=qwer&code=dxUlCWj2JYxnGp59nthGfXFFtn3hJTqx
 access_token_request(Request) ->
 	Code = list_to_binary(ems_request:get_querystring(<<"code">>, [],Request)),
 	ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),

@@ -2,7 +2,6 @@
 
 -behavior(oauth2_backend).
 
-%%% API
 -export([
          start/0
          ,stop/0
@@ -54,7 +53,7 @@
          }).
 
 %%%===================================================================
-%%% API
+%%% 
 %%%===================================================================
 
 start() ->
@@ -68,6 +67,10 @@ start() ->
 
 stop() ->
     lists:foreach(fun ets:delete/1, ?TABLES).
+
+%%%===================================================================
+%%% Teste
+%%%===================================================================
 
 add_user(Username, Password) ->
     put(?USER_TABLE, Username, #user{username = Username, password = Password}).
@@ -104,8 +107,6 @@ authenticate_user({Username, Password}, []) ->
     end.
 
 authenticate_client({ClientId, ClientSecret},_) ->
-	%io:format("\n ClientId, ClientSecret: ~p, ~p\n", [ClientId, ClientSecret]),
-
     case get(?CLIENT_TABLE, ClientId) of
         {ok, Client = #client{client_secret = CliSecret}} -> 
 			case ClientSecret =:= CliSecret of
@@ -132,10 +133,8 @@ associate_access_token(AccessToken, Context, _) ->
 
 
 resolve_access_code(AccessCode, AppContext) ->
-   	%io:format("\nAccessCode, AppContext: ~p, ~p\n", [AccessCode, get(?ACCESS_CODE_TABLE, AccessCode)]),
 	case get(?ACCESS_CODE_TABLE, AccessCode) of
         {ok,Value} -> 
-				%io:format("\Value Gerado: ~p\n", [Value]),
 				{ok,{"CTX",Value}};
         Error = {error, notfound} -> Error
     end.
