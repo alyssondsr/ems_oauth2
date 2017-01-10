@@ -5,6 +5,7 @@
 -include("../include/ems_schema.hrl").
 
 
+
 execute(Request = #request{type = Type}) -> 
 	TypeAuth = case Type of
 		"GET" -> ems_request:get_querystring(<<"response_type">>, "", Request);
@@ -58,15 +59,15 @@ client_credentials_grant(Request) ->
 	ClientId = ems_request:get_querystring(<<"client_id">>, "", Request),
 	Secret = ems_request:get_querystring(<<"secret">>, "", Request),
 	Scope = ems_request:get_querystring(<<"scope">>, "", Request),	
-    Auth = oauth2:authorize_client_credentials(ClientId, Secret, Scope, []),
-    io:format("\nAuth: ~p\n", [Auth]),
-	issue_token(Auth).
+    {ok, {Context, Authorization}} = oauth2:authorize_client_credentials({ClientId, Secret}, Scope, []),
+    io:format("\nAuthorization: ~p\n", [Authorization]),
+	issue_token(Authorization).
     
 password_grant(Request) -> 
 	Username = ems_request:get_querystring(<<"username">>, "", Request),
 	Password = ems_request:get_querystring(<<"password">>, "", Request),
 	Scope = ems_request:get_querystring(<<"scope">>, "", Request),	
-    Auth = oauth2:authorize_password(Username, Password, Scope, []),
+    Auth = oauth2:authorize_password({Username,Password}, Scope, []),
     io:format("\nAuth: ~p\n", [Auth]),
 	issue_token(Auth).
 
@@ -110,10 +111,10 @@ access_token_request(Request) ->
 	Result. 
 		
 
-issue_token({ok, Auth}) ->
-	Response = oauth2:issue_token(Auth, []),
-	    io:format("\nResponse: ~p \n", [list_to_tuple(oauth2_response:to_proplist(Response))]),
-	    
+issue_token(Auth) ->
+    io:format("\nAuth: ~p\n", [{ok,Auth}]),
+	{ok, {Context, Response}} = oauth2:issue_token({ok,Auth}, []),
+	io:format("\nResponse: ~p \n", [Response]),    
 	{ok, list_to_tuple(oauth2_response:to_proplist(Response))};
 issue_token(Error) ->
     Error.

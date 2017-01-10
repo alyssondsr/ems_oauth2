@@ -12,9 +12,8 @@
          ,delete_client/1
         ]).
 
--export([authenticate_username_password/3]).
+-export([authenticate_user/2]).
 -export([authenticate_client/2]).
--export([authenticate_client/3]).
 -export([get_client_identity/2]).
 -export([associate_access_code/3]).
 -export([associate_refresh_token/3]).
@@ -94,27 +93,27 @@ delete_client(Id) ->
 %%% OAuth2 backend functions
 %%%===================================================================
 
-authenticate_username_password(Username, Password, _) ->
+authenticate_user({Username, Password}, []) ->
+	io:format("\n User, Pass: ~p, ~p", [Username, Password]),
     case get(?USER_TABLE, Username) of
         {ok, #user{password = UserPw}} ->
             case Password of
                 UserPw ->
-                    {ok, {<<"user">>, Username}};
+					io:format("\n OK: User, Pass: ~p, ~p", [Username, UserPw]),
+                    {ok, {[],#user{username = Username}}};
                 _ ->
                     {error, badpass}
             end;
-        Error = {error, notfound} ->
-            Error
+        Error = {error, notfound} ->  Error
     end.
 
-authenticate_client(ClientId, ClientSecret, _) ->
-	authenticate_client(ClientId, ClientSecret).
+authenticate_client({ClientId, ClientSecret},_) ->
+	%io:format("\n ClientId, ClientSecret: ~p, ~p\n", [ClientId, ClientSecret]),
 
-authenticate_client(ClientId, ClientSecret) ->
     case get(?CLIENT_TABLE, ClientId) of
         {ok, Client = #client{client_secret = CliSecret}} -> 
 			case ClientSecret =:= CliSecret of
-				true -> {ok, Client};
+				true -> {ok, {[],Client}};
 				_ -> {error, badsecret}
 			end;
         _ -> {error, notfound}
@@ -189,10 +188,10 @@ verify_redirection_uri(#client{redirect_uri = RedirUri}, ClientUri, _) ->
     
 
 verify_client_scope(_ClientId, Scope, _) ->
-    {ok, Scope}.
+    {ok, {[],Scope}}.
 
-verify_resowner_scope(_ResOwner, Scope, _) ->
-    {ok, Scope}.
+verify_resowner_scope(_ResOwner, Scope, Ctx1) ->
+    {ok, {[],Scope}}.
 
 verify_scope(Scope, Scope, _) ->
     {ok, Scope};
