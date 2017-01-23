@@ -71,7 +71,7 @@ password_grant(Request) ->
 	Username = ems_request:get_querystring(<<"username">>, "", Request),
 	Password = ems_request:get_querystring(<<"password">>, "", Request),
 	Scope = ems_request:get_querystring(<<"scope">>, "", Request),	
-    Authorization = oauth2:authorize_password({Username,Password}, Scope, []),
+	Authorization = oauth2:authorize_password({Username,Password}, Scope, []),
 	issue_token(Authorization).
 	
 %% Verifica a URI do Cliente e redireciona para a página de autorização - Implicit Grant e Authorization Code Grant
