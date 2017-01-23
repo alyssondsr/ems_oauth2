@@ -29,7 +29,7 @@ execute(Request = #request{type = Type}) ->
 	end,  
 	case Result of
 		{ok, ResponseData} ->
-			ResponseData2 = ems_util:json_encode(ResponseData),
+			ResponseData2 = ems_schema:prop_list_to_json(ResponseData),
 			{ok, Request#request{code = 200, 
 								 response_data = ResponseData2}
 			};
@@ -112,13 +112,13 @@ access_token_request(Request) ->
 
 issue_token({ok, {_, Auth}}) ->
 	{ok, {_, Response}} = oauth2:issue_token(Auth, []),
-	oauth2_response:to_proplist(Response);
+	{ok, oauth2_response:to_proplist(Response)};
 issue_token(Error) ->
     Error.
     
 issue_code({ok, {_, Auth}}) ->
 	{ok, {_, Response}} = oauth2:issue_code(Auth, []),
-	oauth2_response:to_proplist(Response);
+	{ok, oauth2_response:to_proplist(Response)};
 issue_code(Error) ->
     Error.
 
