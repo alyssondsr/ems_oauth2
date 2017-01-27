@@ -34,12 +34,15 @@
 -define(REFRESH_TOKEN_TABLE, refresh_tokens).
 -define(USER_TABLE, users).
 -define(CLIENT_TABLE, clients).
+-define(SCOPE_TABLE, scopes).
+
 
 -define(TABLES, [?ACCESS_TOKEN_TABLE,
 				 ?ACCESS_CODE_TABLE,
                  ?REFRESH_TOKEN_TABLE,
                  ?USER_TABLE,
-                 ?CLIENT_TABLE]).
+                 ?CLIENT_TABLE,
+                 ?SCOPE_TABLE]).
 
 -record(client, {
           client_id     :: binary(),
@@ -52,6 +55,13 @@
           password :: binary()
          }).
 
+-record(scope, {
+          scope :: binary(),
+          client_id :: binary()
+         }).
+
+
+
 %%%===================================================================
 %%% 
 %%%===================================================================
@@ -63,6 +73,7 @@ start() ->
                   end,
                   ?TABLES),
 	add_client("s6BhdRkqt3","qwer", "http://localhost:2301/portal/index.html"),
+	add_scope("email","s6BhdRkqt3"),
 	add_user("johndoe","A3ddj3w").
 
 stop() ->
@@ -88,6 +99,9 @@ add_client(Id, Secret, RedirectUri) ->
 
 add_client(Id, Secret) ->
     add_client(Id, Secret, undefined).
+
+add_scope(Scope, Client) ->
+    put(?SCOPE_TABLE, Scope, #scope{scope = Scope, client_id = Client}).
 
 delete_client(Id) ->
     delete(?CLIENT_TABLE, Id).
@@ -180,16 +194,26 @@ verify_redirection_uri(#client{redirect_uri = RedirUri}, ClientUri, _) ->
     end.
     
 
-verify_client_scope(_ClientId, Scope, _) ->
-    {ok, {[],Scope}}.
-
+verify_client_scope( #client{client_id = ClientID},Scope, _) ->
+	io:format("~p, ~p ~p  ", [get(?SCOPE_TABLE, Scope), Scope, ClientID]),
+	case get(?SCOPE_TABLE, Scope) of
+        {ok, #scope{scope = Scope, client_id = Client}} ->     
+			case ClientID =:= Client of
+				true -> {ok, {[],Scope}};
+				_ -> {error, invalid_client}
+			end;
+        Error = {error, notfound} ->  Error
+    end.
 verify_resowner_scope(_ResOwner, Scope, _) ->
     {ok, {[],Scope}}.
 
-verify_scope(Scope, Scope, _) ->
-    {ok, Scope};
-verify_scope(_, _, _) ->
-    {error, invalid_scope}.
+verify_scope(RegScope, _ , _) ->
+    case get(?SCOPE_TABLE, RegScope) of
+        {ok, #scope{scope = RegScope}} -> {ok, RegScope};
+        Error = {error, notfound} ->  Error
+    end.
+
+    
 
 %%%===================================================================
 %%% Funções internas
