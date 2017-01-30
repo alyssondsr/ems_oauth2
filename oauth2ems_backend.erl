@@ -2,6 +2,10 @@
 
 -behavior(oauth2_backend).
 
+%%%===================================================================
+%%% Teste
+%%%===================================================================
+
 -export([
          start/0
          ,stop/0
@@ -11,6 +15,9 @@
          ,delete_client/1
         ]).
 
+%%%===================================================================
+%%% Oauth2
+%%%===================================================================
 -export([authenticate_user/2]).
 -export([authenticate_client/2]).
 -export([get_client_identity/2]).
@@ -195,7 +202,6 @@ verify_redirection_uri(#client{redirect_uri = RedirUri}, ClientUri, _) ->
     
 
 verify_client_scope( #client{client_id = ClientID},Scope, _) ->
-	io:format("~p, ~p ~p  ", [get(?SCOPE_TABLE, Scope), Scope, ClientID]),
 	case get(?SCOPE_TABLE, Scope) of
         {ok, #scope{scope = Scope, client_id = Client}} ->     
 			case ClientID =:= Client of

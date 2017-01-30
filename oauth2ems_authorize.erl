@@ -43,11 +43,9 @@ execute(Request = #request{type = Type}) ->
 														}
 									}
 			};
-		Error ->
-			ResponseData = ems_util:json_encode(Error),
-			{ok, Request#request{code = 400, 
-								 response_data = ResponseData}
-			}
+		Error ->   {ok, Request#request{code = 400, 
+								 response_data = Error}
+					}
 	end.
 
 	
